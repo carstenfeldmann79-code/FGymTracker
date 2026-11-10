@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gym Tracker</title>
+    <!-- Web-App Integration für iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1e1e24;
+            --accent-color: #007aff;
+            --text-color: #ffffff;
+            --text-muted: #a0a0a0;
+            --success-color: #34c759;
+            --danger-color: #ff3b30;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 80px;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .exercise-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .set-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 40px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .set-row label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            background: #2c2c35;
+            border: 1px solid #3a3a45;
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .btn-check {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--text-muted);
+            background: transparent;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-check.done {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger-color);
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .add-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .add-form input {
+            text-align: left;
+        }
+
+        .reset-btn {
+            background-color: #3a3a45;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏋️‍♂️ Gym Tracker</h1>
+
+    <button class="reset-btn" onclick="resetCheckmarks()">🔄 Neues Training starten (Häkchen zurücksetzen)</button>
+
+    <div id="exercise-list"></div>
+
+    <!-- Neue Übung hinzufügen -->
+    <div class="card">
+        <h3>Neues Gerät / Übung hinzufügen</h3>
+        <div class="add-form">
+            <input type="text" id="new-name" placeholder="Name des Geräts (z.B. Latzug)">
+            <input type="number" id="new-sets" placeholder="Anzahl Sätze (z.B. 3)" min="1" max="10">
+            <input type="number" id="new-reps" placeholder="Standard Wiederholungen (z.B. 12)">
+            <input type="number" id="new-weight" placeholder="Standard Gewicht in kg (z.B. 45)">
+            <button class="btn-primary" onclick="addExercise()">Gerät hinzufügen</button>
+        </div>
+    </div>
+
+    <script>
+        let defaultExercises = [
+            { 
+                id: 1, 
+                name: 'Latzug', 
+                sets: [
+                    { reps: 12, weight: 45, completed: false },
+                    { reps: 10, weight: 45, completed: false },
+                    { reps: 8, weight: 45, completed: false }
+                ]
+            },
+            { 
+                id: 2, 
+                name: 'Beinpresse', 
+                sets: [
+                    { reps: 12, weight: 80, completed: false },
+                    { reps: 10, weight: 90, completed: false },
+                    { reps: 10, weight: 90, completed: false }
+                ]
+            }
+        ];
+
+        let rawData = localStorage.getItem('gym_exercises_v3');
+        let exercises = rawData ? JSON.parse(rawData) : defaultExercises;
+
+        function saveToStorage() {
+            localStorage.setItem('gym_exercises_v3', JSON.stringify(exercises));
+        }
+
+        function renderExercises() {
+            const list = document.getElementById('exercise-list');
+            list.innerHTML = '';
+
+            exercises.forEach((ex, exIndex) => {
+                let card = document.createElement('div');
+                card.className = 'card';
+
+                let setsHTML = '';
+                ex.sets.forEach((setItem, setIndex) => {
+                    setsHTML += `
+                        <div class="set-row">
+                            <div>
+                                <label>Satz ${setIndex + 1}</label>
+                            </div>
+                            <div>
+                                <label>Wdh.</label>
+                                <input type="number" value="${setItem.reps}" onchange="updateSet(${exIndex}, ${setIndex}, 'reps', this.value)">
+                            </div>
+                            <div>
+                                <label>kg</label>
+                                <input type="number" value="${setItem.weight}" onchange="updateSet(${exIndex}, ${setIndex}, 'weight', this.value)">
+                            </div>
+                            <div>
+                                <label>&nbsp;</label>
+                                <button id="btn-${exIndex}-${setIndex}" class="btn-check ${setItem.completed ? 'done' : ''}" onclick="toggleCheck(${exIndex}, ${setIndex})">
+                                    ${setItem.completed ? '✓' : ''}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="exercise-header">
+                        <span class="exercise-title">${ex.name}</span>
+                        <button class="btn-danger" onclick="deleteExercise(${exIndex})">Löschen</button>
+                    </div>
+                    ${setsHTML}
+                `;
+
+                list.appendChild(card);
+            });
+        }
+
+        function updateSet(exIndex, setIndex, field, value) {
+            exercises[exIndex].sets[setIndex][field] = parseFloat(value) || 0;
+            saveToStorage();
+        }
+
+        // Haken umschalten, ohne die gesamte Oberfläche neu zu zeichnen (verhindert das Überschreiben von Eingaben)
+        function toggleCheck(exIndex, setIndex) {
+            const setItem = exercises[exIndex].sets[setIndex];
+            setItem.completed = !setItem.completed;
+            saveToStorage();
+
+            // Nur den Button direkt optisch anpassen, die Eingabefelder bleiben komplett unberührt
+            const btn = document.getElementById(`btn-${exIndex}-${setIndex}`);
+            if (setItem.completed) {
+                btn.classList.add('done');
+                btn.innerHTML = '✓';
+            } else {
+                btn.classList.remove('done');
+                btn.innerHTML = '';
+            }
+        }
+
+        function resetCheckmarks() {
+            exercises.forEach(ex => {
+                ex.sets.forEach(setItem => {
+                    setItem.completed = false;
+                });
+            });
+            saveToStorage();
+            renderExercises();
+        }
+
+        function addExercise() {
+            const name = document.getElementById('new-name').value;
+            const numSets = parseInt(document.getElementById('new-sets').value) || 3;
+            const defaultReps = parseInt(document.getElementById('new-reps').value) || 10;
+            const defaultWeight = parseFloat(document.getElementById('new-weight').value) || 0;
+
+            if (!name) {
+                alert('Bitte gib einen Namen für das Gerät ein.');
+                return;
+            }
+
+            let setsArray = [];
+            for (let i = 0; i < numSets; i++) {
+                setsArray.push({
+                    reps: defaultReps,
+                    weight: defaultWeight,
+                    completed: false
+                });
+            }
+
+            exercises.push({
+                id: Date.now(),
+                name: name,
+                sets: setsArray
+            });
+
+            saveToStorage();
+            renderExercises();
+
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-sets').value = '';
+            document.getElementById('new-reps').value = '';
+            document.getElementById('new-weight').value = '';
+        }
+
+        function deleteExercise(index) {
+            if (confirm('Möchtest du diese Übung wirklich löschen?')) {
+                exercises.splice(index, 1);
+                saveToStorage();
+                renderExercises();
+            }
+        }
+
+        renderExercises();
+    </script>
+</body>
+</html>
